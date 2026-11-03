@@ -250,6 +250,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 serial=runtime.serial,
                 pin=runtime.pin,
             )
+        elif runtime.status == "pairing_expired":
+            create_notification(
+                "pairing_expired",
+                notification_id=notification_id,
+                serial=runtime.serial,
+            )
         else:
             persistent_notification.async_dismiss(hass, notification_id)
 
