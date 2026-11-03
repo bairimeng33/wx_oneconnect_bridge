@@ -18,7 +18,16 @@
     `percentage` 属性映射华为 `gear` 档位，通过 `oscillating` 映射 `direction` 摆动，
     命令经 `fan.set_percentage` / `fan.oscillate` 下发；
   - 新增契约键 `gear_percent`（档位 int → 百分比），空调原有的 `gear_values` 行为保持不变。
-- `default_mapping.yaml` 新增家用风扇灯示例（注释形式）与使用说明。
+  - 支持 Profile 中的数值 `speed` 与 `angle` 特性：用 `speed_enabled` /
+    `speed_min` / `speed_max` 把 HA 百分比映射到真实档位，用 `angle_enabled` /
+    `angle_on` / `angle_off` 把 `oscillating` 映射到摇头角度；`gear_enabled`
+    可在只有 `speed`、没有 `gear` 的 Profile 上关闭档位上报。
+- **`volume` / `volSwitch` 媒体播放器适配器**（`business/adapters/media_player.py`）：
+  - 仅绑定 `media_player.` 实体，实现电视 / 媒体播放器的**开关、静音、音量**：
+    `switch` 服务负责电源（`switch` 适配器现已支持 `media_player.` 域），
+    `volSwitch` 服务映射 `is_volume_muted`，`volume` 服务映射 `volume_level`；
+  - 不支持播放/暂停、曲目信息、信号源等能力——这些在华为 Profile 中属于其它服务。
+- `default_mapping.yaml` 新增家用风扇灯与媒体播放器示例（注释形式）与使用说明。
 
 > 说明：华为物模型中 `fan` 服务主要来自空调类产品。将家用风扇投影到智慧生活时，
 > 需在华为 IoT 目录中选择一条真实存在且含 `fan` 服务的产品号作为 `prod_id`，否则云端可能返回 15013。

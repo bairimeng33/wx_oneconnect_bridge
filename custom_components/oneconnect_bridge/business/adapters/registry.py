@@ -15,6 +15,7 @@ from .gas_sensor import ADAPTER as GAS_SENSOR
 from .fan import ADAPTER as FAN
 from .hcho import ADAPTER as HCHO
 from .humidity import ADAPTER as HUMIDITY
+from .media_player import ADAPTER as MEDIA_PLAYER
 from .mode import ADAPTER as MODE
 from .motor import ADAPTER as MOTOR
 from .open_level import ADAPTER as OPEN_LEVEL
@@ -42,6 +43,7 @@ _SERVICE_ADAPTERS: dict[str, ServiceAdapter] = {
         ALARM,
         GAS_SENSOR,
         MODE,
+        MEDIA_PLAYER,
         FAN,
         CLEANER_ROBOT,
         STATUS,
@@ -51,6 +53,7 @@ _SERVICE_ADAPTERS: dict[str, ServiceAdapter] = {
 for _service_id in ("switch1", "switch2", "switch3", "switchFan"):
     _SERVICE_ADAPTERS[_service_id] = SWITCH
 _SERVICE_ADAPTERS["leftAction"] = ACTION
+_SERVICE_ADAPTERS["volSwitch"] = MEDIA_PLAYER
 
 
 def get_service_adapter(service_id: str) -> ServiceAdapter:

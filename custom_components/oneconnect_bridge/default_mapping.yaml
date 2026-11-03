@@ -162,3 +162,51 @@ children:
   #       entities: [fan.REPLACE_WITH_FAN]
   #     - sid: fan
   #       entities: [fan.REPLACE_WITH_FAN]
+  #
+  #   如果 Profile 的 fan 服务使用数值 speed（例如 1..32 档），而不是 gear：
+  #     contract:
+  #       gear_enabled: false
+  #       speed_enabled: true
+  #       speed_min: 1
+  #       speed_max: 32
+  #   如果摇头使用 angle 特性（0 固定 / 1 摇头，或 0 / 90 度）：
+  #     contract:
+  #       direction_enabled: false
+  #       angle_enabled: true
+  #       angle_on: 90
+  #       angle_off: 0
+
+  # 电视 / 媒体播放器示例（只覆盖开关、静音、音量）：
+  #   ``switch``   服务负责电源（switch 适配器已支持 media_player 域）；
+  #   ``volSwitch``服务负责静音（由 media_player 适配器处理）；
+  #   ``volume``   服务负责 0..100 音量。
+  #   以下 prod_id 仅说明 Profile 形态，请替换为华为 IoT 目录中真实存在、
+  #   且同时包含所选服务的产品号，否则可能触发 15013。
+  # media_player_tv:
+  #   product:
+  #     prod_id: 2GOX
+  #     sub_prod_id: "00"
+  #     device_type: "098"
+  #     manufacturer: "bbf"
+  #     model: XY-091
+  #     friendly_name: 客厅电视
+  #     room: 客厅
+  #     protocol_type: 6
+  #     setup_type: 0
+  #     known_fields_only: false
+  #     services:
+  #       - st: switch
+  #         sid: switch
+  #         contract:
+  #           on_type: bool
+  #       - st: switch
+  #         sid: volSwitch
+  #       - st: volume
+  #         sid: volume
+  #   bindings:
+  #     - sid: switch
+  #       entities: [media_player.REPLACE_WITH_TV]
+  #     - sid: volSwitch
+  #       entities: [media_player.REPLACE_WITH_TV]
+  #     - sid: volume
+  #       entities: [media_player.REPLACE_WITH_TV]

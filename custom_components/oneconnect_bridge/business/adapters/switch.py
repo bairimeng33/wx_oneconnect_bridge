@@ -7,7 +7,7 @@ from ..models import ServiceRef
 
 class SwitchServiceAdapter:
     service_id = "switch"
-    _domains = {"climate", "light", "switch", "fan"}
+    _domains = {"climate", "light", "switch", "fan", "media_player"}
 
     def validate_service(self, service: ServiceRef) -> None:
         if service.service_type not in {"switch", "binarySwitch"}:
@@ -27,7 +27,9 @@ class SwitchServiceAdapter:
             raise ValueError("switch currently requires exactly one HA entity")
         domain, separator, _object_id = entity_ids[0].partition(".")
         if not separator or domain not in self._domains:
-            raise ValueError("switch requires a climate, light, switch, or fan entity")
+            raise ValueError(
+                "switch requires a climate, light, switch, fan, or media_player entity"
+            )
 
     async def read_state(
         self, hass, service: ServiceRef, entity_ids: tuple[str, ...]
@@ -43,6 +45,11 @@ class SwitchServiceAdapter:
                 is_on = False
             else:
                 is_on = True
+        elif domain == "media_player":
+            if state.state in {"unknown", "unavailable"}:
+                return {}
+            # ``standby`` is also off; ``playing`` / ``paused`` / ``idle`` are on.
+            is_on = state.state not in {"off", "standby"}
         elif state.state in {"on", "off"}:
             is_on = state.state == "on"
         else:

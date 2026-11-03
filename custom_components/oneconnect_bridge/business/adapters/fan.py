@@ -21,8 +21,10 @@ Bound entity domain
                       and swing from ``swing_mode`` / ``swing_horizontal_mode``.
       ``fan.``     -- household fan / ceiling fan / ceiling fan light.  ``gear``
                       is derived from the HA ``percentage`` attribute and issued
-                      through ``fan.set_percentage``; oscillation is mapped to
-                      the ``direction`` characteristic via ``oscillating``.
+                      through ``fan.set_percentage``; ``speed`` can report the
+                      same percentage on Profiles that expose a numeric speed;
+                      oscillation is mapped to ``direction`` or ``angle`` via
+                      ``oscillating``.
 
 Contract
     ``gear_values``        : for ``climate.`` entities only, maps HA ``fan_mode``
@@ -30,10 +32,24 @@ Contract
     ``gear_percent``       : for ``fan.`` entities only, maps a gear int to the
                              HA ``percentage`` it should be reported as / set to.
                              When omitted a default 1->25 / 2->50 / 3->100 is used.
+    ``gear_enabled``       : for ``fan.`` entities only, controls whether the
+                             ``gear`` characteristic is reported / accepted.
+                             Default true.  Set it to false for Profiles whose
+                             ``fan`` service exposes only ``speed``.
+    ``speed_enabled``      : for ``fan.`` entities only, report / accept the
+                             numeric ``speed`` characteristic.  Default false.
+    ``speed_min``          : minimum wire value of ``speed``.  Default 1.
+    ``speed_max``          : maximum wire value of ``speed``.  Default 100.
     ``direction_enabled``  : controls whether the optional ``direction``
                              characteristic is read and reported.  Set it to false
                              for Profiles that expose only ``gear`` (most
                              household fans).
+    ``angle_enabled``      : for ``fan.`` entities only, use the ``angle``
+                             characteristic instead of ``direction`` for
+                             oscillation.  Default false.
+    ``angle_on``           : wire ``angle`` value when oscillating.  Default 1.
+    ``angle_off``          : wire ``angle`` value when not oscillating.
+                             Default 0.
 
 Details
     For ``climate.`` entities, swing is reported from Home Assistant's two swing
@@ -41,11 +57,20 @@ Details
     ``swing_horizontal_mode`` (horizontal), older releases only ``swing_mode``
     with ``on`` meaning vertical.
 
-    For ``fan.`` entities swing is derived from ``oscillating``: ``True`` maps to
-    ``direction=3`` (vertical) and ``False`` to ``direction=1`` (fixed).
+    For ``fan.`` entities, the HA ``percentage`` (0..100) maps linearly onto
+    ``speed_min``..``speed_max`` when ``speed_enabled`` is set, e.g. ``1..32``
+    for a 32-step fan or ``1..100`` when the Profile uses percent.  When both
+    ``gear`` and ``speed`` are enabled both are reported, but a downstream
+    command prefers ``speed`` because it carries the finer value.
 
-    Unmapped gear or an unsupported swing name is skipped instead of forwarded,
-    so the cloud never receives a value it would reject for the whole service.
+    For ``fan.`` entities swing is derived from ``oscillating``.  With
+    ``angle_enabled`` it maps to ``angle_on`` / ``angle_off`` (covers both the
+    ``0`` hold / ``1`` sweep enum and continuous angles such as ``0`` / ``90``);
+    otherwise it maps to ``direction=3`` (vertical) / ``direction=1`` (fixed).
+
+    Unmapped gear, an out-of-range speed, an unknown angle or an unsupported
+    swing name is skipped instead of forwarded, so the cloud never receives a
+    value it would reject for the whole service.
     The on/off part of a household fan is normally bound separately through the
     ``switch`` adapter, which already accepts ``fan.`` domain entities.
 
@@ -90,7 +115,14 @@ class FanServiceAdapter:
         unknown = set(dict(service.contract)) - {
             "gear_values",
             "gear_percent",
+            "gear_enabled",
             "direction_enabled",
+            "speed_enabled",
+            "speed_min",
+            "speed_max",
+            "angle_enabled",
+            "angle_on",
+            "angle_off",
         }
         if unknown:
             raise ValueError(
@@ -98,7 +130,12 @@ class FanServiceAdapter:
             )
         _gear_values(service)
         _gear_percent(service)
+        _gear_enabled(service)
         _direction_enabled(service)
+        _speed_enabled(service)
+        _speed_limits(service)
+        _angle_enabled(service)
+        _angle_values(service)
 
     def validate_entities(self, entity_ids: tuple[str, ...]) -> None:
         if len(entity_ids) != 1:
@@ -120,18 +157,28 @@ class FanServiceAdapter:
         data: dict[str, object] = {}
 
         if domain == "climate":
-            gear = _gear_values(service).get(attributes.get("fan_mode"))
+            if _gear_enabled(service):
+                gear = _gear_values(service).get(attributes.get("fan_mode"))
+                if gear is not None:
+                    data["gear"] = gear
         else:
-            gear = _fan_gear_from_percentage(
-                _gear_percent(service), attributes.get("percentage")
-            )
-        if gear is not None:
-            data["gear"] = gear
-
-        if not _direction_enabled(service):
-            return data
+            percentage = attributes.get("percentage")
+            if _gear_enabled(service):
+                gear = _fan_gear_from_percentage(
+                    _gear_percent(service), percentage
+                )
+                if gear is not None:
+                    data["gear"] = gear
+            if _speed_enabled(service):
+                speed = _fan_speed_from_percentage(
+                    percentage, *_speed_limits(service)
+                )
+                if speed is not None:
+                    data["speed"] = speed
 
         if domain == "climate":
+            if not _direction_enabled(service):
+                return data
             vertical = _active(attributes.get("swing_mode"))
             horizontal = _active(attributes.get("swing_horizontal_mode"))
             if vertical and horizontal:
@@ -142,7 +189,12 @@ class FanServiceAdapter:
                 data["direction"] = 2
             else:
                 data["direction"] = 1
-        else:
+        elif _angle_enabled(service):
+            angle_on, angle_off = _angle_values(service)
+            data["angle"] = (
+                angle_on if _active(attributes.get("oscillating")) else angle_off
+            )
+        elif _direction_enabled(service):
             data["direction"] = 3 if _active(attributes.get("oscillating")) else 1
         return data
 
@@ -158,10 +210,14 @@ class FanServiceAdapter:
         state = hass.states.get(entity_ids[0])
         attributes = state.attributes if state else {}
         domain = entity_ids[0].partition(".")[0]
-        gear = _wire_int(payload.get("gear"))
-        direction = _wire_int(payload.get("direction")) if _direction_enabled(service) else None
+        gear = _wire_int(payload.get("gear")) if _gear_enabled(service) else None
 
         if domain == "climate":
+            direction = (
+                _wire_int(payload.get("direction"))
+                if _direction_enabled(service)
+                else None
+            )
             gear_to_ha = {value: name for name, value in _gear_values(service).items()}
             fan_mode = gear_to_ha.get(gear) if gear is not None else None
             swing_mode = _DIRECTION_TO_HA.get(direction) if direction is not None else None
@@ -190,10 +246,19 @@ class FanServiceAdapter:
             return
 
         # Home Assistant ``fan.`` entity (household fan / ceiling fan light).
-        gear_to_percent = _gear_percent(service)
-        percentage = gear_to_percent.get(gear) if gear is not None else None
-        if gear is not None and percentage is None:
-            return
+        # A numeric ``speed`` carries the finer value, so it wins over ``gear``
+        # when both are present in the same downstream command.
+        speed = _wire_int(payload.get("speed")) if _speed_enabled(service) else None
+        percentage: int | None = None
+        if speed is not None:
+            speed_min, speed_max = _speed_limits(service)
+            if not speed_min <= speed <= speed_max:
+                return
+            percentage = _fan_percentage_from_speed(speed, speed_min, speed_max)
+        elif gear is not None:
+            percentage = _gear_percent(service).get(gear)
+            if percentage is None:
+                return
         if percentage is not None:
             await hass.services.async_call(
                 "fan",
@@ -201,14 +266,34 @@ class FanServiceAdapter:
                 {"entity_id": entity_ids[0], "percentage": percentage},
                 blocking=True,
             )
-        if direction is not None:
-            osc = direction >= 2
-            await hass.services.async_call(
-                "fan",
-                "oscillate",
-                {"entity_id": entity_ids[0], "oscillating": osc},
-                blocking=True,
-            )
+
+        if _angle_enabled(service):
+            angle = _wire_int(payload.get("angle"))
+            if angle is not None:
+                angle_on, angle_off = _angle_values(service)
+                if angle == angle_on:
+                    oscillating = True
+                elif angle == angle_off:
+                    oscillating = False
+                else:
+                    return
+                await hass.services.async_call(
+                    "fan",
+                    "oscillate",
+                    {"entity_id": entity_ids[0], "oscillating": oscillating},
+                    blocking=True,
+                )
+            return
+
+        if _direction_enabled(service):
+            direction = _wire_int(payload.get("direction"))
+            if direction is not None:
+                await hass.services.async_call(
+                    "fan",
+                    "oscillate",
+                    {"entity_id": entity_ids[0], "oscillating": direction >= 2},
+                    blocking=True,
+                )
 
 
 ADAPTER = FanServiceAdapter()
@@ -255,11 +340,57 @@ def _gear_percent(service: ServiceRef) -> dict[int, int]:
     return values
 
 
+def _gear_enabled(service: ServiceRef) -> bool:
+    value = service.contract_value("gear_enabled", True)
+    if not isinstance(value, bool):
+        raise ValueError("fan contract gear_enabled must be boolean")
+    return value
+
+
 def _direction_enabled(service: ServiceRef) -> bool:
     value = service.contract_value("direction_enabled", True)
     if not isinstance(value, bool):
         raise ValueError("fan contract direction_enabled must be boolean")
     return value
+
+
+def _speed_enabled(service: ServiceRef) -> bool:
+    value = service.contract_value("speed_enabled", False)
+    if not isinstance(value, bool):
+        raise ValueError("fan contract speed_enabled must be boolean")
+    return value
+
+
+def _speed_limits(service: ServiceRef) -> tuple[int, int]:
+    minimum = service.contract_value("speed_min", 1)
+    maximum = service.contract_value("speed_max", 100)
+    if any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in (minimum, maximum)
+    ):
+        raise ValueError("fan contract speed_min and speed_max must be integers")
+    if not 0 <= minimum < maximum:
+        raise ValueError("fan contract speed_min must be below speed_max")
+    return minimum, maximum
+
+
+def _angle_enabled(service: ServiceRef) -> bool:
+    value = service.contract_value("angle_enabled", False)
+    if not isinstance(value, bool):
+        raise ValueError("fan contract angle_enabled must be boolean")
+    return value
+
+
+def _angle_values(service: ServiceRef) -> tuple[int, int]:
+    on = service.contract_value("angle_on", 1)
+    off = service.contract_value("angle_off", 0)
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) for value in (on, off)
+    ):
+        raise ValueError("fan contract angle_on and angle_off must be integers")
+    if on == off:
+        raise ValueError("fan contract angle_on and angle_off must differ")
+    return on, off
 
 
 def _fan_gear_from_percentage(
@@ -280,6 +411,25 @@ def _fan_gear_from_percentage(
             best_diff = diff
             best_gear = gear
     return best_gear
+
+
+def _fan_speed_from_percentage(
+    percentage: object, minimum: int, maximum: int
+) -> int | None:
+    """Map an HA ``fan.percentage`` (0..100) onto the configured speed range."""
+    if percentage is None or isinstance(percentage, bool):
+        return None
+    try:
+        current = float(percentage)
+    except (TypeError, ValueError):
+        return None
+    current = min(100.0, max(0.0, current))
+    return round(minimum + current * (maximum - minimum) / 100)
+
+
+def _fan_percentage_from_speed(speed: int, minimum: int, maximum: int) -> int:
+    """Map a wire speed value back to the HA ``percentage`` range."""
+    return round((speed - minimum) * 100 / (maximum - minimum))
 
 
 def _active(value: object) -> bool:
