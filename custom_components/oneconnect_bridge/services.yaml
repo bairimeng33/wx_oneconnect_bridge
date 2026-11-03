@@ -1,0 +1,11 @@
+start_pairing:
+  name: Start pairing
+  description: Restart LAN pairing for a configured gateway and generate a new PIN.
+  fields:
+    serial:
+      name: Gateway serial number
+      description: Serial number of the OneConnect Bridge gateway to pair.
+      required: true
+      example: "392738D38A9A464D"
+      selector:
+        text:

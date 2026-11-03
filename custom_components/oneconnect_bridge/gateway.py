@@ -442,8 +442,15 @@ class GatewayRuntime:
         self._set_status("error", f"pairing listener: {error}")
 
     def on_pairing_expired(self) -> None:
+        # Expected lifecycle, not a failure: the PIN is valid for
+        # PIN_TTL_SECONDS and the user can start pairing again on demand.
         self._clear_pairing_ticket()
-        self._set_status("offline", "pairing PIN expired")
+        self._set_status("offline")
+        _LOGGER.info(
+            "Gateway %s pairing PIN expired; call %s.start_pairing to retry",
+            self.serial,
+            "oneconnect_bridge",
+        )
 
     def consume_pairing_complete(self) -> bool:
         with self._lock:
