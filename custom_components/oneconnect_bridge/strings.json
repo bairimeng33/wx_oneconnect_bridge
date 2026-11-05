@@ -9,18 +9,54 @@
         }
       },
       "init": {
+        "title": "OneConnect Bridge settings",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "interface": {
         "title": "Select pairing network interface",
         "data": {
           "interface_ip": "Pairing network IPv4 address"
+        }
+      },
+      "add_child": {
+        "title": "Add child device",
+        "data": {
+          "profile": "Device type"
+        }
+      },
+      "add_child_entity": {
+        "title": "Select Home Assistant entity",
+        "data": {
+          "entity_id": "Entity to project"
+        }
+      },
+      "add_child_details": {
+        "title": "Child device details",
+        "data": {
+          "name": "Display name",
+          "room": "Room"
+        }
+      },
+      "remove_child": {
+        "title": "Remove child device",
+        "data": {
+          "child": "Child device"
         }
       }
     },
     "abort": {
       "no_ipv4_interface": "No usable IPv4 network interface was found.",
-      "already_configured": "This gateway is already configured."
+      "already_configured": "This gateway is already configured.",
+      "no_children": "There are no child devices to remove.",
+      "unknown_action": "Unknown settings action."
     },
     "error": {
-      "mac_not_found": "Unable to read the MAC address of the selected network interface."
+      "mac_not_found": "Unable to read the MAC address of the selected network interface.",
+      "invalid_entity_domain": "Select an entity that matches the device type.",
+      "invalid_name": "Display name must not be empty.",
+      "invalid_mapping": "Unable to save the mapping. Check the selected entity and the existing mapping.yaml."
     }
   },
   "device": {

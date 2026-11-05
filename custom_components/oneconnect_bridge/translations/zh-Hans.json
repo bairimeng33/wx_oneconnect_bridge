@@ -9,18 +9,54 @@
         }
       },
       "init": {
+        "title": "OneConnect Bridge 设置",
+        "data": {
+          "action": "操作"
+        }
+      },
+      "interface": {
         "title": "选择配对网卡",
         "data": {
           "interface_ip": "配对网卡 IPv4 地址"
+        }
+      },
+      "add_child": {
+        "title": "添加子设备",
+        "data": {
+          "profile": "设备类型"
+        }
+      },
+      "add_child_entity": {
+        "title": "选择 Home Assistant 实体",
+        "data": {
+          "entity_id": "要投影的实体"
+        }
+      },
+      "add_child_details": {
+        "title": "子设备信息",
+        "data": {
+          "name": "显示名称",
+          "room": "房间"
+        }
+      },
+      "remove_child": {
+        "title": "删除子设备",
+        "data": {
+          "child": "子设备"
         }
       }
     },
     "abort": {
       "no_ipv4_interface": "没有发现可用的 IPv4 网卡。",
-      "already_configured": "此网关已经配置。"
+      "already_configured": "此网关已经配置。",
+      "no_children": "当前没有可删除的子设备。",
+      "unknown_action": "未知的设置操作。"
     },
     "error": {
-      "mac_not_found": "无法读取所选网卡的 MAC 地址。"
+      "mac_not_found": "无法读取所选网卡的 MAC 地址。",
+      "invalid_entity_domain": "请选择与设备类型匹配的实体。",
+      "invalid_name": "显示名称不能为空。",
+      "invalid_mapping": "无法保存映射，请检查所选实体和现有 mapping.yaml。"
     }
   },
   "device": {
