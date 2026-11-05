@@ -45,6 +45,14 @@ class ChildManager:
         self._client: CloudM2MClient | None = None
         self._access_token: str | None = None
         self._pending_state: dict[str, dict[str, dict[str, object]]] = {}
+        self._registration_errors: list[str] = []
+
+    @property
+    def registration_errors(self) -> tuple[str, ...]:
+        """Return the per-child failures from the last registration pass."""
+
+        with self._lock:
+            return tuple(self._registration_errors)
 
     def set_entity_bridge(self, entity_bridge) -> None:
         """Attach the HA adapter used for initial state and commands."""
@@ -76,6 +84,8 @@ class ChildManager:
             self._access_token = access_token
 
         success = True
+        with self._lock:
+            self._registration_errors.clear()
         for child in self.plan.children:
             try:
                 self._register_one(
@@ -87,6 +97,9 @@ class ChildManager:
                 )
             except Exception as error:  # noqa: BLE001 - one child must not kill parent
                 success = False
+                detail = f"{child.key}: {error}"
+                with self._lock:
+                    self._registration_errors.append(detail)
                 _LOGGER.error(
                     "Child %s for gateway %s failed during registration: %s",
                     child.key,

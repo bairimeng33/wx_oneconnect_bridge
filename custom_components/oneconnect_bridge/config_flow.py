@@ -136,6 +136,31 @@ _PROFILES: dict[str, dict[str, object]] = {
             },
         ],
     },
+    "fan_9mxo": {
+        "label": "风扇（9MXO 兼容模式）",
+        "domain": "fan",
+        "product": {
+            "prod_id": "9MXO",
+            "sub_prod_id": "00",
+            "device_type": "012",
+            "manufacturer": "002",
+            "model": "test20",
+            "protocol_type": 6,
+            "setup_type": 0,
+            "known_fields_only": False,
+        },
+        "services": [
+            {"st": "switch", "sid": "switch", "contract": {"on_type": "bool"}},
+            {
+                "st": "fan",
+                "sid": "fan",
+                "contract": {
+                    "gear_percent": {1: 33, 2: 67, 3: 100},
+                    "direction_enabled": False,
+                },
+            },
+        ],
+    },
     "media_2gox": {
         "label": "电视 / 媒体播放器（2GOX）",
         "domain": "media_player",

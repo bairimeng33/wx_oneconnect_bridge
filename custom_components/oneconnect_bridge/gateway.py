@@ -313,7 +313,11 @@ class GatewayRuntime:
                         integration_version=self._integration_version,
                         hardware_version=self._integration_version,
                     ):
-                        raise RuntimeError("one or more child operations failed")
+                        details = "; ".join(new_manager.registration_errors)
+                        raise RuntimeError(
+                            "one or more child operations failed"
+                            + (f": {details}" if details else "")
+                        )
                 else:
                     access_token = client.online_access_token
                     if access_token is None:
