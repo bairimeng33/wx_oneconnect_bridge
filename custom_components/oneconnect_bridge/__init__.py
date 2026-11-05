@@ -50,6 +50,23 @@ def _prepare_gateway_mapping(config_dir: str, serial: str):
     return path, load_enabled_mapping(path)
 
 
+def _replace_mapping(path: Path, text: str) -> None:
+    """Validate imported YAML in a temporary file, then replace the mapping."""
+
+    temporary = path.with_name(path.name + ".import")
+    try:
+        temporary.write_text(text, encoding="utf-8")
+        # Parse and validate before touching the live mapping.
+        load_enabled_mapping(temporary)
+        temporary.replace(path)
+    finally:
+        if temporary.exists():
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await async_get_translations(
         hass,
@@ -84,6 +101,52 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             "start_pairing",
             start_pairing,
             schema=vol.Schema({vol.Required("serial"): vol.Coerce(str)}),
+        )
+
+    if not hass.services.has_service(DOMAIN, "import_mapping"):
+        async def import_mapping(call) -> None:
+            entry_id = call.data["config_entry"]
+            entry = hass.config_entries.async_get_entry(entry_id)
+            if entry is None or entry.domain != DOMAIN:
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="unknown_gateway",
+                    translation_placeholders={"serial": entry_id},
+                )
+            mapping = data.get("gateway_mappings", {}).get(entry_id)
+            path = mapping.get("path") if mapping else None
+            if path is None:
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="mapping_file_unavailable",
+                )
+            try:
+                await hass.async_add_executor_job(
+                    _replace_mapping,
+                    path,
+                    call.data["mapping"],
+                )
+            except Exception as error:  # noqa: BLE001 - surfaced to the service caller
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="mapping_import_failed",
+                    translation_placeholders={"error": str(error)},
+                ) from error
+
+            reload_children = data.get("reload_callbacks", {}).get(entry_id)
+            if reload_children is not None:
+                await reload_children()
+
+        hass.services.async_register(
+            DOMAIN,
+            "import_mapping",
+            import_mapping,
+            schema=vol.Schema(
+                {
+                    vol.Required("config_entry"): vol.Coerce(str),
+                    vol.Required("mapping"): vol.Coerce(str),
+                }
+            ),
         )
     return True
 

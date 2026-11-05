@@ -9,3 +9,22 @@ start_pairing:
       example: "392738D38A9A464D"
       selector:
         text:
+
+import_mapping:
+  name: 导入网关映射
+  description: 用 YAML 文本替换所选网关的 mapping.yaml，并立即重载子设备配置。
+  fields:
+    config_entry:
+      name: 网关
+      description: 选择要更新的 OneConnect Bridge 网关。
+      required: true
+      selector:
+        config_entry:
+          integration: oneconnect_bridge
+    mapping:
+      name: mapping.yaml 内容
+      description: 完整的 mapping.yaml 文本；导入前会先校验，校验失败不会覆盖原文件。
+      required: true
+      selector:
+        text:
+          multiline: true

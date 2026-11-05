@@ -59,6 +59,9 @@
     "mapping_reload_failed": {
       "message": "The child-device mapping could not be reloaded: {error}"
     },
+    "mapping_import_failed": {
+      "message": "The mapping could not be imported: {error}"
+    },
     "unknown_gateway": {
       "message": "Unknown OneConnect Bridge gateway: {serial}"
     }

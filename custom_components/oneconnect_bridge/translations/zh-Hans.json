@@ -59,6 +59,9 @@
     "mapping_reload_failed": {
       "message": "子设备映射配置重载失败：{error}"
     },
+    "mapping_import_failed": {
+      "message": "映射配置导入失败：{error}"
+    },
     "unknown_gateway": {
       "message": "未知的 OneConnect Bridge 网关：{serial}"
     }
