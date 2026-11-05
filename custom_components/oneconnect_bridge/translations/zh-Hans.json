@@ -44,13 +44,21 @@
         "data": {
           "child": "子设备"
         }
+      },
+      "clear_children": {
+        "title": "清空失败子设备",
+        "description": "删除该网关中所有手动添加的子设备并重载映射。链路探测设备会保留。",
+        "data": {
+          "confirm": "确认清空"
+        }
       }
     },
     "abort": {
       "no_ipv4_interface": "没有发现可用的 IPv4 网卡。",
       "already_configured": "此网关已经配置。",
       "no_children": "当前没有可删除的子设备。",
-      "unknown_action": "未知的设置操作。"
+      "unknown_action": "未知的设置操作。",
+      "cancelled": "已取消。"
     },
     "error": {
       "mac_not_found": "无法读取所选网卡的 MAC 地址。",

@@ -108,36 +108,8 @@ _PROFILES: dict[str, dict[str, object]] = {
             {"st": "opener", "sid": "opener"},
         ],
     },
-    "fan_2pul": {
-        "label": "家用风扇（2PUL，4 档）",
-        "domain": "fan",
-        "product": {
-            "prod_id": "2PUL",
-            "sub_prod_id": "00",
-            "device_type": "029",
-            "manufacturer": "221",
-            "model": "FZS-h",
-            "protocol_type": 6,
-            "setup_type": 0,
-            "known_fields_only": False,
-        },
-        "services": [
-            {"st": "switch", "sid": "switch", "contract": {"on_type": "bool"}},
-            {
-                "st": "fan",
-                "sid": "fan",
-                "contract": {
-                    "gear_percent": {1: 25, 2: 50, 3: 75, 4: 100},
-                    "direction_enabled": False,
-                    "angle_enabled": True,
-                    "angle_on": 1,
-                    "angle_off": 0,
-                },
-            },
-        ],
-    },
     "fan_9mxo": {
-        "label": "风扇（9MXO 兼容模式）",
+        "label": "风扇（9MXO 兼容模式，显示为空调）",
         "domain": "fan",
         "product": {
             "prod_id": "9MXO",
@@ -161,25 +133,7 @@ _PROFILES: dict[str, dict[str, object]] = {
             },
         ],
     },
-    "media_2gox": {
-        "label": "电视 / 媒体播放器（2GOX）",
-        "domain": "media_player",
-        "product": {
-            "prod_id": "2GOX",
-            "sub_prod_id": "00",
-            "device_type": "098",
-            "manufacturer": "bbf",
-            "model": "XY-091",
-            "protocol_type": 6,
-            "setup_type": 0,
-            "known_fields_only": False,
-        },
-        "services": [
-            {"st": "switch", "sid": "switch", "contract": {"on_type": "bool"}},
-            {"st": "switch", "sid": "volSwitch"},
-            {"st": "volume", "sid": "volume"},
-        ],
-    },
+
 }
 
 
@@ -340,6 +294,8 @@ class OptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_add_child()
             if action == "remove_child":
                 return await self.async_step_remove_child()
+            if action == "clear_children":
+                return await self.async_step_clear_children()
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
@@ -349,6 +305,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                             "interface": "修改配对网卡",
                             "add_child": "添加子设备",
                             "remove_child": "删除子设备",
+                            "clear_children": "清空失败子设备",
                         }
                     )
                 }
@@ -492,6 +449,33 @@ class OptionsFlow(config_entries.OptionsFlow):
             description_placeholders=placeholders or None,
         )
 
+    async def async_step_clear_children(self, user_input=None):
+        errors: dict[str, str] = {}
+        placeholders: dict[str, str] = {}
+        if user_input is not None:
+            if not user_input.get("confirm"):
+                return self.async_abort(reason="cancelled")
+            try:
+                await self.hass.async_add_executor_job(self._clear_children)
+                await self._reload_mapping()
+            except Exception as error:  # noqa: BLE001 - shown in the form
+                _LOGGER.exception("Unable to clear child mappings")
+                errors["base"] = "invalid_mapping"
+                placeholders["error"] = str(error)
+            else:
+                return self.async_create_entry(
+                    title="",
+                    data=dict(self._entry.options),
+                )
+        return self.async_show_form(
+            step_id="clear_children",
+            data_schema=vol.Schema(
+                {vol.Required("confirm", default=False): bool}
+            ),
+            errors=errors,
+            description_placeholders=placeholders or None,
+        )
+
     def _save_child(self, name: str, room: str) -> None:
         assert self._profile_key is not None
         assert self._entity_id is not None
@@ -526,6 +510,20 @@ class OptionsFlow(config_entries.OptionsFlow):
         if key not in children:
             raise ValueError(f"子设备不存在：{key}")
         children.pop(key)
+        _write_mapping(path, mapping)
+
+    def _clear_children(self) -> None:
+        serial = str(self._entry.data[CONF_SERIAL])
+        path = _mapping_path(self.hass.config.path(), serial)
+        mapping = _read_mapping(path)
+        children = mapping["children"]
+        assert isinstance(children, dict)
+        # Keep the optional link probe; remove every user-added child.
+        mapping["children"] = {
+            key: value
+            for key, value in children.items()
+            if key == "oneconnect_link_probe"
+        }
         _write_mapping(path, mapping)
 
     async def _reload_mapping(self) -> None:

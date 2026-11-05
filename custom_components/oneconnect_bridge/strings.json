@@ -44,13 +44,21 @@
         "data": {
           "child": "Child device"
         }
+      },
+      "clear_children": {
+        "title": "Clear failed child devices",
+        "description": "Remove every user-added child from this gateway mapping and reload it. The link probe is kept.",
+        "data": {
+          "confirm": "Confirm removal"
+        }
       }
     },
     "abort": {
       "no_ipv4_interface": "No usable IPv4 network interface was found.",
       "already_configured": "This gateway is already configured.",
       "no_children": "There are no child devices to remove.",
-      "unknown_action": "Unknown settings action."
+      "unknown_action": "Unknown settings action.",
+      "cancelled": "Cancelled."
     },
     "error": {
       "mac_not_found": "Unable to read the MAC address of the selected network interface.",
