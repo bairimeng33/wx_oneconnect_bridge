@@ -43,6 +43,19 @@ HUAWEI_ROOT_CA_URL = (
 )
 MANIFEST_PATH = Path(__file__).with_name("manifest.json")
 _LOGGER = logging.getLogger(__name__)
+
+# Pairing results that leave the phone waiting for a reply (the 99% hang) or
+# mean the request could not be understood. Surfaced as a persistent
+# notification because Home Assistant hides INFO logs by default.
+_PAIRING_FAILURE_KINDS = frozenset(
+    {
+        "unsupported_request",
+        "invalid_speke",
+        "cloud_setup_before_speke",
+        "invalid_cloud_setup",
+        "known_invalid_cloud_setup",
+    }
+)
 RECONNECT_INITIAL_DELAY_SECONDS = 5.0
 RECONNECT_MAX_DELAY_SECONDS = 600.0
 TERMINAL_CLOUD_ERRCODES = frozenset({3, 5, 6})
@@ -161,18 +174,28 @@ class PairingBroker:
                 response, result = runtime.handle_pairing_datagram(packet, remote[0])
                 # SPEKE responses are normal chatter; everything else explains
                 # why the phone may stop before CloudSetup completes.
-                if result.kind != "speke_response" or response is None:
-                    _LOGGER.info(
-                        "Gateway %s pairing datagram peer=%s kind=%s "
-                        "resource=%s stage=%s wire=%s responded=%s",
-                        runtime.serial,
-                        remote[0],
-                        result.kind,
-                        result.resource,
-                        result.failure_stage,
-                        result.wire_format,
-                        response is not None,
+                if result.kind != "speke_response":
+                    detail = (
+                        f"kind={result.kind} resource={result.resource} "
+                        f"stage={result.failure_stage} wire={result.wire_format} "
+                        f"responded={response is not None}"
                     )
+                    if (
+                        response is None
+                        or result.kind in _PAIRING_FAILURE_KINDS
+                    ):
+                        _LOGGER.warning(
+                            "Gateway %s pairing problem: %s",
+                            runtime.serial,
+                            detail,
+                        )
+                        runtime.note_pairing_diagnostic(detail)
+                    else:
+                        _LOGGER.info(
+                            "Gateway %s pairing datagram: %s",
+                            runtime.serial,
+                            detail,
+                        )
                 if response is not None:
                     try:
                         sock.sendto(response, remote)
@@ -212,6 +235,7 @@ class GatewayRuntime:
         self._listeners: list[Callable[[], None]] = []
         self._status = "offline"
         self._last_error: str | None = None
+        self._pairing_diagnostic: str | None = None
         self._pin: str | None = None
         self._pin_expires_at = 0.0
         self._pairing_complete_pending = False
@@ -331,6 +355,11 @@ class GatewayRuntime:
     def status_error(self) -> str | None:
         with self._lock:
             return self._last_error
+
+    @property
+    def pairing_diagnostic(self) -> str | None:
+        with self._lock:
+            return self._pairing_diagnostic
 
     @property
     def pin(self) -> str | None:
@@ -464,6 +493,13 @@ class GatewayRuntime:
 
     def on_pairing_error(self, error: Exception) -> None:
         self._set_status("error", f"pairing listener: {error}")
+
+    def note_pairing_diagnostic(self, detail: str) -> None:
+        """Store the latest unusable pairing request for the HA notification."""
+
+        with self._lock:
+            self._pairing_diagnostic = detail
+        self._notify()
 
     def on_pairing_expired(self) -> None:
         # Expected lifecycle, but the gateway is unreachable until pairing is
@@ -686,6 +722,7 @@ class GatewayRuntime:
             self._pin = pin
             self._pin_expires_at = expires
             self._pairing_complete_pending = False
+            self._pairing_diagnostic = None
             self._pairing_responder = LocalPairingResponder(
                 self.descriptor,
                 pin,
@@ -724,6 +761,7 @@ class GatewayRuntime:
         )
         with self._lock:
             self._pairing_complete_pending = True
+            self._pairing_diagnostic = None
         _LOGGER.info(
             "Gateway %s accepted CloudSetup binding; cloud registration queued",
             self.serial,

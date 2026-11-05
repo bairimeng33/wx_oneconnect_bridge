@@ -241,6 +241,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     has_bound_material = await hass.async_add_executor_job(runtime.has_bound_material)
 
     notification_id = f"{DOMAIN}_{runtime.serial}_pairing"
+    diagnostic_id = f"{DOMAIN}_{runtime.serial}_pairing_diagnostic"
 
     def sync_pairing_notification() -> None:
         if runtime.status == "pairing" and runtime.pin:
@@ -265,6 +266,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         else:
             persistent_notification.async_dismiss(hass, notification_id)
+
+        diagnostic = runtime.pairing_diagnostic
+        if diagnostic is not None:
+            create_notification(
+                "pairing_diagnostic",
+                notification_id=diagnostic_id,
+                serial=runtime.serial,
+                detail=diagnostic,
+            )
+        else:
+            persistent_notification.async_dismiss(hass, diagnostic_id)
 
     async def forward_platforms() -> None:
         try:

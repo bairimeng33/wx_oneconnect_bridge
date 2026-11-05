@@ -75,6 +75,8 @@
     "pairing_expired_title": "OneConnect Bridge pairing PIN expired",
     "pairing_expired_message": "Gateway `{serial}` is offline because its pairing PIN expired.\n\nCall the `oneconnect_bridge.start_pairing` action with serial `{serial}`, or reload the integration, to generate a new PIN.",
     "gateway_error_title": "OneConnect Bridge gateway error",
-    "gateway_error_message": "Gateway `{serial}` stopped with an error:\n\n{error}\n\nCheck the Home Assistant log for the failing stage, then reload the integration to retry."
+    "gateway_error_message": "Gateway `{serial}` stopped with an error:\n\n{error}\n\nCheck the Home Assistant log for the failing stage, then reload the integration to retry.",
+    "pairing_diagnostic_title": "OneConnect Bridge pairing detail",
+    "pairing_diagnostic_message": "Gateway `{serial}` could not use a pairing request from the phone:\n\n`{detail}`\n\nThe phone app and this bridge likely use different pairing protocol versions. Include this line when reporting the issue."
   }
 }
