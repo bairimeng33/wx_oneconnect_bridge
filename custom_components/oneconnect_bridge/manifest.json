@@ -1,7 +1,7 @@
 {
   "domain": "oneconnect_bridge",
   "name": "OneConnect Bridge",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "config_flow": true,
   "documentation": "https://github.com/xiasi0/ha-oneconnect-bridge",
   "issue_tracker": "https://github.com/xiasi0/ha-oneconnect-bridge/issues",

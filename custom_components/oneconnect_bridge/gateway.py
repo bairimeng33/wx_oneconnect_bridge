@@ -158,7 +158,21 @@ class PairingBroker:
                 except OSError:
                     break
 
-                response, _ = runtime.handle_pairing_datagram(packet, remote[0])
+                response, result = runtime.handle_pairing_datagram(packet, remote[0])
+                # SPEKE responses are normal chatter; everything else explains
+                # why the phone may stop before CloudSetup completes.
+                if result.kind != "speke_response" or response is None:
+                    _LOGGER.info(
+                        "Gateway %s pairing datagram peer=%s kind=%s "
+                        "resource=%s stage=%s wire=%s responded=%s",
+                        runtime.serial,
+                        remote[0],
+                        result.kind,
+                        result.resource,
+                        result.failure_stage,
+                        result.wire_format,
+                        response is not None,
+                    )
                 if response is not None:
                     try:
                         sock.sendto(response, remote)
@@ -376,8 +390,11 @@ class GatewayRuntime:
 
     def _set_status(self, status: str, error: str | None = None) -> None:
         with self._lock:
+            changed = self._status != status or self._last_error != error
             self._status = status
             self._last_error = error
+        if changed:
+            _LOGGER.info("Gateway %s status -> %s", self.serial, status)
         if error:
             _LOGGER.error("Gateway %s entered %s: %s", self.serial, status, error)
         self._notify()
@@ -470,6 +487,10 @@ class GatewayRuntime:
         if self._binding is None:
             self._set_status("error", "CloudSetup binding material is missing")
             return
+        _LOGGER.info(
+            "Gateway %s starting cloud registration from CloudSetup binding",
+            self.serial,
+        )
         self._start_cloud(bound_state=None, binding=self._binding)
 
     def start_cloud_from_state(self, state: dict[str, object]) -> None:
@@ -703,6 +724,10 @@ class GatewayRuntime:
         )
         with self._lock:
             self._pairing_complete_pending = True
+        _LOGGER.info(
+            "Gateway %s accepted CloudSetup binding; cloud registration queued",
+            self.serial,
+        )
 
     def _load_binding(self) -> CloudSetupBindingInfo | None:
         value = self.store.read_json("cloud/material.json")
