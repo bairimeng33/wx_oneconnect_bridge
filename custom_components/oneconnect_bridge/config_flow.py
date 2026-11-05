@@ -108,6 +108,53 @@ _PROFILES: dict[str, dict[str, object]] = {
             {"st": "opener", "sid": "opener"},
         ],
     },
+    "fan_2pul": {
+        "label": "家用风扇（2PUL，4 档）",
+        "domain": "fan",
+        "product": {
+            "prod_id": "2PUL",
+            "sub_prod_id": "00",
+            "device_type": "029",
+            "manufacturer": "221",
+            "model": "FZS-h",
+            "protocol_type": 6,
+            "setup_type": 0,
+            "known_fields_only": False,
+        },
+        "services": [
+            {"st": "switch", "sid": "switch", "contract": {"on_type": "bool"}},
+            {
+                "st": "fan",
+                "sid": "fan",
+                "contract": {
+                    "gear_percent": {1: 25, 2: 50, 3: 75, 4: 100},
+                    "direction_enabled": False,
+                    "angle_enabled": True,
+                    "angle_on": 1,
+                    "angle_off": 0,
+                },
+            },
+        ],
+    },
+    "media_2gox": {
+        "label": "电视 / 媒体播放器（2GOX）",
+        "domain": "media_player",
+        "product": {
+            "prod_id": "2GOX",
+            "sub_prod_id": "00",
+            "device_type": "098",
+            "manufacturer": "bbf",
+            "model": "XY-091",
+            "protocol_type": 6,
+            "setup_type": 0,
+            "known_fields_only": False,
+        },
+        "services": [
+            {"st": "switch", "sid": "switch", "contract": {"on_type": "bool"}},
+            {"st": "switch", "sid": "volSwitch"},
+            {"st": "volume", "sid": "volume"},
+        ],
+    },
 }
 
 
