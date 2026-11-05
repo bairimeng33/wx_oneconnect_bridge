@@ -73,6 +73,8 @@
     "pairing_title": "OneConnect Bridge 配对",
     "pairing_message": "网关 `{serial}` 正在等待配对。\n\nPIN：`{pin}`\n\n请打开华为智慧生活，选择添加网关并手动输入 PIN。",
     "pairing_expired_title": "OneConnect Bridge 配对 PIN 已过期",
-    "pairing_expired_message": "网关 `{serial}` 因配对 PIN 过期已离线。\n\n请调用 `oneconnect_bridge.start_pairing` 动作并传入序列号 `{serial}`，或重载该集成，以生成新的 PIN。"
+    "pairing_expired_message": "网关 `{serial}` 因配对 PIN 过期已离线。\n\n请调用 `oneconnect_bridge.start_pairing` 动作并传入序列号 `{serial}`，或重载该集成，以生成新的 PIN。",
+    "gateway_error_title": "OneConnect Bridge 网关错误",
+    "gateway_error_message": "网关 `{serial}` 因错误停止：\n\n{error}\n\n请查看 Home Assistant 日志中的失败阶段，然后重载集成重试。"
   }
 }

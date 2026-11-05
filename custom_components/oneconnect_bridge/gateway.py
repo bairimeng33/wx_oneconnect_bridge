@@ -197,6 +197,7 @@ class GatewayRuntime:
         self._lock = threading.RLock()
         self._listeners: list[Callable[[], None]] = []
         self._status = "offline"
+        self._last_error: str | None = None
         self._pin: str | None = None
         self._pin_expires_at = 0.0
         self._pairing_complete_pending = False
@@ -313,6 +314,11 @@ class GatewayRuntime:
             return self._status
 
     @property
+    def status_error(self) -> str | None:
+        with self._lock:
+            return self._last_error
+
+    @property
     def pin(self) -> str | None:
         with self._lock:
             if self._pin and time.monotonic() < self._pin_expires_at:
@@ -371,6 +377,7 @@ class GatewayRuntime:
     def _set_status(self, status: str, error: str | None = None) -> None:
         with self._lock:
             self._status = status
+            self._last_error = error
         if error:
             _LOGGER.error("Gateway %s entered %s: %s", self.serial, status, error)
         self._notify()
@@ -618,8 +625,18 @@ class GatewayRuntime:
                     RECONNECT_MAX_DELAY_SECONDS,
                 )
 
+        def worker_guard() -> None:
+            try:
+                worker()
+            except Exception as error:  # noqa: BLE001 - never leave the gateway silent
+                _LOGGER.exception(
+                    "Gateway %s cloud worker crashed",
+                    self.serial,
+                )
+                self._set_status("error", f"cloud worker crashed: {error}")
+
         self._cloud_thread = threading.Thread(
-            target=worker,
+            target=worker_guard,
             name=f"oneconnect-bridge-cloud-{self.serial}",
             daemon=True,
         )

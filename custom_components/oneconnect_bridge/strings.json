@@ -73,6 +73,8 @@
     "pairing_title": "OneConnect Bridge pairing",
     "pairing_message": "Gateway `{serial}` is waiting for pairing.\n\nPIN: `{pin}`\n\nOpen Huawei Smart Life, select Add gateway, and enter the PIN manually.",
     "pairing_expired_title": "OneConnect Bridge pairing PIN expired",
-    "pairing_expired_message": "Gateway `{serial}` is offline because its pairing PIN expired.\n\nCall the `oneconnect_bridge.start_pairing` action with serial `{serial}`, or reload the integration, to generate a new PIN."
+    "pairing_expired_message": "Gateway `{serial}` is offline because its pairing PIN expired.\n\nCall the `oneconnect_bridge.start_pairing` action with serial `{serial}`, or reload the integration, to generate a new PIN.",
+    "gateway_error_title": "OneConnect Bridge gateway error",
+    "gateway_error_message": "Gateway `{serial}` stopped with an error:\n\n{error}\n\nCheck the Home Assistant log for the failing stage, then reload the integration to retry."
   }
 }

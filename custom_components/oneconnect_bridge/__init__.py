@@ -256,6 +256,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 notification_id=notification_id,
                 serial=runtime.serial,
             )
+        elif runtime.status == "error":
+            create_notification(
+                "gateway_error",
+                notification_id=notification_id,
+                serial=runtime.serial,
+                error=runtime.status_error or "See the Home Assistant log for details.",
+            )
         else:
             persistent_notification.async_dismiss(hass, notification_id)
 
