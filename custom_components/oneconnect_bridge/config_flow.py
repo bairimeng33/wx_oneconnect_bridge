@@ -122,7 +122,9 @@ _PROFILES: dict[str, dict[str, object]] = {
             "known_fields_only": False,
         },
         "services": [
-            {"st": "switch", "sid": "switch", "contract": {"on_type": "bool"}},
+            # HA-specific products use the default integer wire format (0/1);
+            # using on_type: bool drops the cloud's numeric switch command.
+            {"st": "switch", "sid": "switch"},
             {
                 "st": "fan",
                 "sid": "fan",
@@ -131,6 +133,40 @@ _PROFILES: dict[str, dict[str, object]] = {
                     "direction_enabled": False,
                 },
             },
+        ],
+    },
+    "tv_9mu7": {
+        "label": "电视电源（9MU7 兼容，仅开关）",
+        "domain": "media_player",
+        "product": {
+            "prod_id": "9MU7",
+            "sub_prod_id": "00",
+            "device_type": "119",
+            "manufacturer": "002",
+            "model": "haTest10",
+            "protocol_type": 6,
+            "setup_type": 0,
+            "known_fields_only": False,
+        },
+        "services": [
+            {"st": "switch", "sid": "switch"},
+        ],
+    },
+    "fan_switch_9mu7": {
+        "label": "风扇电源（9MU7 兼容，仅开关）",
+        "domain": "fan",
+        "product": {
+            "prod_id": "9MU7",
+            "sub_prod_id": "00",
+            "device_type": "119",
+            "manufacturer": "002",
+            "model": "haTest10",
+            "protocol_type": 6,
+            "setup_type": 0,
+            "known_fields_only": False,
+        },
+        "services": [
+            {"st": "switch", "sid": "switch"},
         ],
     },
 
