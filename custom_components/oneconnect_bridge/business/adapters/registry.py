@@ -50,7 +50,7 @@ _SERVICE_ADAPTERS: dict[str, ServiceAdapter] = {
         ACTION,
     )
 }
-for _service_id in ("switch1", "switch2", "switch3", "switchFan"):
+for _service_id in ("switch1", "switch2", "switch3", "switchFan", "binarySwitch"):
     _SERVICE_ADAPTERS[_service_id] = SWITCH
 _SERVICE_ADAPTERS["leftAction"] = ACTION
 _SERVICE_ADAPTERS["volSwitch"] = MEDIA_PLAYER
