@@ -135,37 +135,6 @@ _PROFILES: dict[str, dict[str, object]] = {
             },
         ],
     },
-    "fan_101z": {
-        "label": "风扇（101z，档位 + 摇头）",
-        "domain": "fan",
-        "product": {
-            "prod_id": "101z",
-            "sub_prod_id": "00",
-            "device_type": "029",
-            "manufacturer": "005",
-            "model": "未知",
-            "protocol_type": 6,
-            "setup_type": 0,
-            "known_fields_only": False,
-        },
-        "services": [
-            {"st": "switch", "sid": "binarySwitch"},
-            {
-                "st": "fan",
-                "sid": "fan",
-                "contract": {
-                    "gear_enabled": False,
-                    "speed_enabled": True,
-                    "speed_min": 1,
-                    "speed_max": 26,
-                    "direction_enabled": False,
-                    "angle_enabled": True,
-                    "angle_on": 90,
-                    "angle_off": 0,
-                },
-            },
-        ],
-    },
     "tv_9mu7": {
         "label": "电视电源（9MU7 兼容，仅开关）",
         "domain": "media_player",

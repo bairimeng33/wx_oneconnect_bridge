@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from ..models import ServiceRef
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class SwitchServiceAdapter:
@@ -75,19 +79,33 @@ class SwitchServiceAdapter:
             allowed = state.attributes.get("hvac_modes") if state else None
             if isinstance(allowed, list) and allowed and hvac_mode not in allowed:
                 return
+            try:
+                await hass.services.async_call(
+                    "climate",
+                    "set_hvac_mode",
+                    {"entity_id": entity_ids[0], "hvac_mode": hvac_mode},
+                    blocking=True,
+                )
+            except Exception as error:  # noqa: BLE001 - a command must not kill the worker
+                _LOGGER.warning(
+                    "Climate switch command for %s failed: %s",
+                    entity_ids[0],
+                    error,
+                )
+            return
+        try:
             await hass.services.async_call(
-                "climate",
-                "set_hvac_mode",
-                {"entity_id": entity_ids[0], "hvac_mode": hvac_mode},
+                domain,
+                "turn_on" if enabled else "turn_off",
+                {"entity_id": entity_ids[0]},
                 blocking=True,
             )
-            return
-        await hass.services.async_call(
-            domain,
-            "turn_on" if enabled else "turn_off",
-            {"entity_id": entity_ids[0]},
-            blocking=True,
-        )
+        except Exception as error:  # noqa: BLE001 - a command must not kill the worker
+            _LOGGER.warning(
+                "Switch command for %s failed: %s",
+                entity_ids[0],
+                error,
+            )
 
 
 ADAPTER = SwitchServiceAdapter()
